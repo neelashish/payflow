@@ -30,7 +30,7 @@ export default function PaymentFailure() {
 
           <div className="space-y-3">
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate(-1)}
               className="w-full py-3 px-6 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition"
             >
               <i className="fas fa-redo mr-2"></i>

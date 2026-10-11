@@ -36,10 +36,9 @@ const ReceiptView = forwardRef<HTMLDivElement, ReceiptViewProps>(({ receipt, org
         {/* Header */}
         <div style={{ textAlign: 'center', borderBottom: '2px solid #333', paddingBottom: '10px', marginBottom: '15px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '15px' }}>
-            {organisation.logo && (
+            {organisation.logo ? (
               <img src={organisation.logo} alt="Logo" style={{ width: '60px', height: '60px', objectFit: 'contain' }} />
-            )}
-            {!organisation.logo && (
+            ) : (
               <div style={{ width: '60px', height: '60px', backgroundColor: '#1a365d', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '20px', fontWeight: 'bold' }}>
                 {organisation.name.charAt(0)}
               </div>
@@ -48,7 +47,9 @@ const ReceiptView = forwardRef<HTMLDivElement, ReceiptViewProps>(({ receipt, org
               <h1 style={{ fontSize: '18pt', fontWeight: 'bold', margin: '0 0 4px 0', color: '#1a365d', textTransform: 'uppercase', letterSpacing: '1px' }}>
                 {organisation.name}
               </h1>
-              <p style={{ margin: '0', fontSize: '9pt', color: '#555' }}>{organisation.address}</p>
+              <p style={{ margin: '0', fontSize: '9pt', color: '#555' }}>
+                {organisation.address}{organisation.city ? `, ${organisation.city}` : ''}{organisation.state ? ` ${organisation.state}` : ''}{organisation.pincode ? ` - ${organisation.pincode}` : ''}
+              </p>
               <p style={{ margin: '2px 0 0 0', fontSize: '9pt', color: '#555' }}>
                 Email: {organisation.email} | Phone: {organisation.phone}
                 {organisation.gstin && ` | GSTIN: ${organisation.gstin}`}
@@ -82,11 +83,9 @@ const ReceiptView = forwardRef<HTMLDivElement, ReceiptViewProps>(({ receipt, org
             RECEIVED FROM
           </div>
           <div style={{ padding: '10px 12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '10pt' }}>
-            <div><strong>Name:</strong> {receipt.studentName}</div>
-            <div><strong>Student ID:</strong> {receipt.studentAdmissionId}</div>
-            <div><strong>Course:</strong> {receipt.course}</div>
-            <div><strong>Session:</strong> {receipt.academicSession}</div>
-            {receipt.parentName && <div><strong>Parent/Guardian:</strong> {receipt.parentName}</div>}
+            <div><strong>Name:</strong> {receipt.customerName}</div>
+            {receipt.customerReferenceId && <div><strong>Reference ID:</strong> {receipt.customerReferenceId}</div>}
+            {receipt.customerEmail && <div><strong>Email:</strong> {receipt.customerEmail}</div>}
           </div>
         </div>
 
@@ -131,17 +130,19 @@ const ReceiptView = forwardRef<HTMLDivElement, ReceiptViewProps>(({ receipt, org
         </div>
 
         {/* Bank Details */}
-        <div style={{ marginBottom: '15px', border: '1px solid #dee2e6', borderRadius: '4px', overflow: 'hidden' }}>
-          <div style={{ backgroundColor: '#f1f5f9', padding: '6px 12px', fontWeight: 'bold', fontSize: '10pt', borderBottom: '1px solid #dee2e6' }}>
-            BANK DETAILS
+        {organisation.bankName && (
+          <div style={{ marginBottom: '15px', border: '1px solid #dee2e6', borderRadius: '4px', overflow: 'hidden' }}>
+            <div style={{ backgroundColor: '#f1f5f9', padding: '6px 12px', fontWeight: 'bold', fontSize: '10pt', borderBottom: '1px solid #dee2e6' }}>
+              BANK DETAILS
+            </div>
+            <div style={{ padding: '10px 12px', fontSize: '9pt' }}>
+              <div><strong>Bank:</strong> {organisation.bankName}</div>
+              {organisation.bankAccount && <div><strong>Account No:</strong> {organisation.bankAccount}</div>}
+              {organisation.bankIfsc && <div><strong>IFSC:</strong> {organisation.bankIfsc}</div>}
+              {organisation.bankBranch && <div><strong>Branch:</strong> {organisation.bankBranch}</div>}
+            </div>
           </div>
-          <div style={{ padding: '10px 12px', fontSize: '9pt' }}>
-            <div><strong>Bank:</strong> {organisation.bankName}</div>
-            <div><strong>Account No:</strong> {organisation.bankAccount}</div>
-            <div><strong>IFSC:</strong> {organisation.bankIfsc}</div>
-            <div><strong>Branch:</strong> {organisation.bankBranch}</div>
-          </div>
-        </div>
+        )}
 
         {/* Declaration */}
         <div style={{ marginBottom: '15px', padding: '8px 12px', fontStyle: 'italic', fontSize: '9pt', color: '#555', borderLeft: '3px solid #1a365d' }}>
@@ -149,10 +150,12 @@ const ReceiptView = forwardRef<HTMLDivElement, ReceiptViewProps>(({ receipt, org
         </div>
 
         {/* Terms */}
-        <div style={{ marginBottom: '20px', fontSize: '8pt', color: '#666' }}>
-          <strong>Terms & Conditions:</strong>
-          <div style={{ whiteSpace: 'pre-line', marginTop: '4px' }}>{organisation.termsAndConditions}</div>
-        </div>
+        {organisation.termsAndConditions && (
+          <div style={{ marginBottom: '20px', fontSize: '8pt', color: '#666' }}>
+            <strong>Terms & Conditions:</strong>
+            <div style={{ whiteSpace: 'pre-line', marginTop: '4px' }}>{organisation.termsAndConditions}</div>
+          </div>
+        )}
 
         {/* Signatures */}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '30px', paddingTop: '20px', borderTop: '1px solid #dee2e6' }}>
@@ -162,11 +165,21 @@ const ReceiptView = forwardRef<HTMLDivElement, ReceiptViewProps>(({ receipt, org
             </div>
           </div>
           <div style={{ textAlign: 'center' }}>
+            {organisation.signatoryImage ? (
+              <img src={organisation.signatoryImage} alt="Signature" style={{ height: '40px', marginBottom: '4px' }} />
+            ) : null}
             <div style={{ borderTop: '1px solid #333', width: '150px', paddingTop: '8px', fontSize: '9pt' }}>
               {organisation.authorisedSignatory}
             </div>
           </div>
         </div>
+
+        {/* Footer */}
+        {organisation.receiptFooter && (
+          <div style={{ marginTop: '15px', fontSize: '8pt', color: '#888', textAlign: 'center', borderTop: '1px solid #eee', paddingTop: '8px' }}>
+            {organisation.receiptFooter}
+          </div>
+        )}
       </div>
     </div>
   );

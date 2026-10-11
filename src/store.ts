@@ -1,56 +1,40 @@
 import { v4 as uuidv4 } from 'uuid';
-import type { AppState, Organisation, Student, FeeItem, PaymentRequest, Payment, Receipt, PaymentStatus } from './types';
+import type { 
+  PlatformState, 
+  Organisation, 
+  User, 
+  Customer, 
+  FeeCategory, 
+  PaymentRequest, 
+  Payment, 
+  Receipt, 
+  Invoice, 
+  PaymentStatus,
+  OrganisationType
+} from './types';
 
-const STORAGE_KEY = 'receiptflow_data';
-const ADMIN_PASSWORD = 'admin123'; // In production, this would be server-side
+const STORAGE_KEY = 'payflow_platform_data';
 
-const defaultOrganisation: Organisation = {
-  id: 'org-1',
-  name: 'Winners Creek International School',
-  address: '42, Education Lane, Knowledge Park, Bengaluru, Karnataka - 560001',
-  email: 'accounts@winnerscreek.edu.in',
-  phone: '+91 80 4567 8900',
-  gstin: '29AABCU9603R1ZM',
-  logo: '',
-  bankName: 'State Bank of India',
-  bankAccount: '3876 1204 5890 012',
-  bankIfsc: 'SBIN0001234',
-  bankBranch: 'Knowledge Park Branch, Bengaluru',
-  declaration: 'We declare that this invoice/receipt shows the true value of fees received. This is a computer-generated receipt.',
-  receiptPrefix: 'WC',
-  preparedBy: 'Accounts Department',
-  authorisedSignatory: 'Principal',
-  termsAndConditions: '1. Fees once paid is non-refundable.\n2. This receipt is valid only for the mentioned academic session.\n3. Please preserve this receipt for future reference.',
-};
+const PLATFORM_NAME = 'PayFlow';
+const PLATFORM_TAGLINE = 'Payments and Receipts for Every Organisation';
 
-const defaultFeeItems: FeeItem[] = [
-  { id: 'fee-1', description: 'Tuition Fees', amount: 15000, currency: 'INR', academicSession: '2026-27', active: true },
-  { id: 'fee-2', description: 'Soft Skills Fees', amount: 850, currency: 'INR', academicSession: '2026-27', active: true },
-  { id: 'fee-3', description: 'Lab Fees', amount: 2500, currency: 'INR', academicSession: '2026-27', active: true },
-  { id: 'fee-4', description: 'Library Fees', amount: 1200, currency: 'INR', academicSession: '2026-27', active: true },
-  { id: 'fee-5', description: 'Examination Fees', amount: 1800, currency: 'INR', academicSession: '2026-27', active: true },
-  { id: 'fee-6', description: 'Transport Fees', amount: 3500, currency: 'INR', academicSession: '2026-27', active: true },
-];
-
-const defaultStudents: Student[] = [
-  { id: 'stu-1', studentId: 'STU-001', name: 'Aarav Sharma', address: '12, MG Road, Bengaluru', email: 'aarav@example.com', phone: '+91 9876543210', course: 'B.Com (Hons)', academicSession: '2026-27' },
-  { id: 'stu-2', studentId: 'STU-002', name: 'Priya Patel', address: '45, Brigade Road, Bengaluru', email: 'priya@example.com', phone: '+91 9876543211', course: 'B.Sc Computer Science', academicSession: '2026-27' },
-  { id: 'stu-3', studentId: 'STU-003', name: 'Rohan Gupta', address: '78, Koramangala, Bengaluru', email: 'rohan@example.com', phone: '+91 9876543212', course: 'BBA', academicSession: '2026-27' },
-];
-
-function getDefaultState(): AppState {
+function getDefaultState(): PlatformState {
   return {
-    organisation: defaultOrganisation,
-    students: defaultStudents,
-    feeItems: defaultFeeItems,
+    organisations: [],
+    users: [],
+    customers: [],
+    feeCategories: [],
     paymentRequests: [],
     payments: [],
     receipts: [],
+    invoices: [],
     webhookEvents: [],
+    currentOrganisationId: null,
+    currentUserId: null,
   };
 }
 
-export function loadState(): AppState {
+export function loadState(): PlatformState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -64,69 +48,203 @@ export function loadState(): AppState {
   return defaultState;
 }
 
-export function saveState(state: AppState): void {
+export function saveState(state: PlatformState): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-export function getOrganisation(): Organisation {
-  return loadState().organisation;
-}
-
-export function updateOrganisation(org: Partial<Organisation>): Organisation {
-  const state = loadState();
-  state.organisation = { ...state.organisation, ...org };
-  saveState(state);
-  return state.organisation;
-}
-
-export function getStudents(): Student[] {
-  return loadState().students;
-}
-
-export function addStudent(student: Omit<Student, 'id'>): Student {
-  const state = loadState();
-  const newStudent: Student = { ...student, id: uuidv4() };
-  state.students.push(newStudent);
-  saveState(state);
-  return newStudent;
-}
-
-export function importStudents(students: Omit<Student, 'id'>[]): Student[] {
-  const state = loadState();
-  const newStudents = students.map(s => ({ ...s, id: uuidv4() }));
-  state.students.push(...newStudents);
-  saveState(state);
-  return newStudents;
-}
-
-export function getFeeItems(): FeeItem[] {
-  return loadState().feeItems;
-}
-
-export function addFeeItem(feeItem: Omit<FeeItem, 'id'>): FeeItem {
-  const state = loadState();
-  const newItem: FeeItem = { ...feeItem, id: uuidv4() };
-  state.feeItems.push(newItem);
-  saveState(state);
-  return newItem;
-}
-
-export function createPaymentRequest(data: {
-  studentId: string;
-  studentName: string;
-  studentAdmissionId: string;
-  course: string;
-  academicSession: string;
-  parentName: string;
+// Organisation management
+export function registerOrganisation(data: {
+  name: string;
+  type: OrganisationType;
   email: string;
   phone: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  country: string;
+  website: string;
+  adminName: string;
+  adminEmail: string;
+  adminPassword: string;
+}): { organisation: Organisation; user: User } {
+  const state = loadState();
+  
+  const org: Organisation = {
+    id: uuidv4(),
+    name: data.name,
+    type: data.type,
+    email: data.email,
+    phone: data.phone,
+    address: data.address,
+    city: data.city,
+    state: data.state,
+    pincode: data.pincode,
+    country: data.country || 'India',
+    website: data.website,
+    logo: '',
+    gstin: '',
+    bankName: '',
+    bankAccount: '',
+    bankIfsc: '',
+    bankBranch: '',
+    declaration: 'We declare that this receipt shows the true value of fees received.',
+    receiptPrefix: 'RC',
+    invoicePrefix: 'INV',
+    currency: 'INR',
+    receiptFooter: '',
+    termsAndConditions: 'This is a computer-generated receipt.',
+    preparedBy: 'Accounts Department',
+    authorisedSignatory: 'Authorised Signatory',
+    signatoryImage: '',
+    razorpayKeyId: '',
+    razorpayConfigured: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    isActive: true,
+  };
+  
+  const user: User = {
+    id: uuidv4(),
+    organisationId: org.id,
+    email: data.adminEmail,
+    name: data.adminName,
+    role: 'owner',
+    passwordHash: btoa(data.adminPassword), // Simple encoding for demo
+    createdAt: new Date().toISOString(),
+    isActive: true,
+  };
+  
+  state.organisations.push(org);
+  state.users.push(user);
+  saveState(state);
+  
+  return { organisation: org, user };
+}
+
+export function getOrganisation(id: string): Organisation | null {
+  return loadState().organisations.find(o => o.id === id) || null;
+}
+
+export function updateOrganisation(id: string, updates: Partial<Organisation>): Organisation | null {
+  const state = loadState();
+  const idx = state.organisations.findIndex(o => o.id === id);
+  if (idx === -1) return null;
+  state.organisations[idx] = { ...state.organisations[idx], ...updates, updatedAt: new Date().toISOString() };
+  saveState(state);
+  return state.organisations[idx];
+}
+
+export function getAllOrganisations(): Organisation[] {
+  return loadState().organisations.filter(o => o.isActive);
+}
+
+// User management
+export function authenticateUser(email: string, password: string): User | null {
+  const state = loadState();
+  const user = state.users.find(u => u.email === email && u.passwordHash === btoa(password) && u.isActive);
+  return user || null;
+}
+
+export function getUser(id: string): User | null {
+  return loadState().users.find(u => u.id === id) || null;
+}
+
+export function getUsersByOrganisation(orgId: string): User[] {
+  return loadState().users.filter(u => u.organisationId === orgId && u.isActive);
+}
+
+export function setCurrentOrganisation(orgId: string | null): void {
+  const state = loadState();
+  state.currentOrganisationId = orgId;
+  saveState(state);
+}
+
+export function setCurrentUser(userId: string | null): void {
+  const state = loadState();
+  state.currentUserId = userId;
+  saveState(state);
+}
+
+export function getCurrentOrganisation(): Organisation | null {
+  const state = loadState();
+  if (!state.currentOrganisationId) return null;
+  return getOrganisation(state.currentOrganisationId);
+}
+
+export function getCurrentUser(): User | null {
+  const state = loadState();
+  if (!state.currentUserId) return null;
+  return getUser(state.currentUserId);
+}
+
+// Customer management
+export function addCustomer(orgId: string, data: Omit<Customer, 'id' | 'organisationId' | 'createdAt'>): Customer {
+  const state = loadState();
+  const customer: Customer = {
+    id: uuidv4(),
+    organisationId: orgId,
+    ...data,
+    createdAt: new Date().toISOString(),
+  };
+  state.customers.push(customer);
+  saveState(state);
+  return customer;
+}
+
+export function getCustomersByOrganisation(orgId: string): Customer[] {
+  return loadState().customers.filter(c => c.organisationId === orgId);
+}
+
+export function importCustomers(orgId: string, customers: Omit<Customer, 'id' | 'organisationId' | 'createdAt'>[]): Customer[] {
+  const state = loadState();
+  const newCustomers = customers.map(c => ({
+    id: uuidv4(),
+    organisationId: orgId,
+    ...c,
+    createdAt: new Date().toISOString(),
+  }));
+  state.customers.push(...newCustomers);
+  saveState(state);
+  return newCustomers;
+}
+
+// Fee category management
+export function addFeeCategory(orgId: string, data: Omit<FeeCategory, 'id' | 'organisationId' | 'createdAt'>): FeeCategory {
+  const state = loadState();
+  const category: FeeCategory = {
+    id: uuidv4(),
+    organisationId: orgId,
+    ...data,
+    createdAt: new Date().toISOString(),
+  };
+  state.feeCategories.push(category);
+  saveState(state);
+  return category;
+}
+
+export function getFeeCategoriesByOrganisation(orgId: string): FeeCategory[] {
+  return loadState().feeCategories.filter(f => f.organisationId === orgId);
+}
+
+// Payment request management
+export function createPaymentRequest(orgId: string, data: {
+  customerId: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  customerReferenceId: string;
+  feeCategoryId: string;
   feeDescription: string;
   amountPaise: number;
   currency: string;
+  description: string;
+  dueDate: string | null;
 }): PaymentRequest {
   const state = loadState();
   const pr: PaymentRequest = {
     id: uuidv4(),
+    organisationId: orgId,
     ...data,
     status: 'pending',
     razorpayOrderId: null,
@@ -155,7 +273,12 @@ export function getPaymentRequestByOrderId(orderId: string): PaymentRequest | nu
   return loadState().paymentRequests.find(pr => pr.razorpayOrderId === orderId) || null;
 }
 
-export function createPayment(data: {
+export function getPaymentRequestsByOrganisation(orgId: string): PaymentRequest[] {
+  return loadState().paymentRequests.filter(pr => pr.organisationId === orgId);
+}
+
+// Payment management
+export function createPayment(orgId: string, data: {
   paymentRequestId: string;
   razorpayOrderId: string;
   razorpayPaymentId: string;
@@ -167,6 +290,7 @@ export function createPayment(data: {
   const state = loadState();
   const payment: Payment = {
     id: uuidv4(),
+    organisationId: orgId,
     ...data,
     capturedAt: data.status === 'captured' ? new Date().toISOString() : null,
     failureReason: null,
@@ -177,15 +301,6 @@ export function createPayment(data: {
   return payment;
 }
 
-export function updatePayment(id: string, updates: Partial<Payment>): Payment | null {
-  const state = loadState();
-  const idx = state.payments.findIndex(p => p.id === id);
-  if (idx === -1) return null;
-  state.payments[idx] = { ...state.payments[idx], ...updates };
-  saveState(state);
-  return state.payments[idx];
-}
-
 export function getPayment(id: string): Payment | null {
   return loadState().payments.find(p => p.id === id) || null;
 }
@@ -194,24 +309,32 @@ export function getPaymentByRazorpayId(razorpayPaymentId: string): Payment | nul
   return loadState().payments.find(p => p.razorpayPaymentId === razorpayPaymentId) || null;
 }
 
-export function generateReceiptNumber(): string {
+export function getPaymentsByOrganisation(orgId: string): Payment[] {
+  return loadState().payments.filter(p => p.organisationId === orgId);
+}
+
+// Receipt management
+export function generateReceiptNumber(orgId: string): string {
   const state = loadState();
-  const prefix = state.organisation.receiptPrefix || 'RC';
+  const org = state.organisations.find(o => o.id === orgId);
+  if (!org) return 'RC-0001';
+  
+  const prefix = org.receiptPrefix || 'RC';
   const year = new Date().getFullYear();
-  const existingCount = state.receipts.filter(r => r.receiptNumber.startsWith(`${prefix}-${year}`)).length;
+  const existingCount = state.receipts.filter(r => 
+    r.organisationId === orgId && r.receiptNumber.startsWith(`${prefix}-${year}`)
+  ).length;
   const nextNumber = String(existingCount + 1).padStart(4, '0');
   return `${prefix}-${year}-${nextNumber}`;
 }
 
-export function createReceipt(data: {
+export function createReceipt(orgId: string, data: {
   paymentId: string;
   paymentRequestId: string;
-  studentId: string;
-  studentName: string;
-  studentAdmissionId: string;
-  course: string;
-  academicSession: string;
-  parentName: string;
+  customerId: string;
+  customerName: string;
+  customerReferenceId: string;
+  customerEmail: string;
   amount: number;
   currency: string;
   feeDescription: string;
@@ -220,13 +343,15 @@ export function createReceipt(data: {
   razorpayOrderId: string;
 }): Receipt {
   const state = loadState();
+  
   // Idempotency check
   const existing = state.receipts.find(r => r.paymentId === data.paymentId);
   if (existing) return existing;
   
   const receipt: Receipt = {
     id: uuidv4(),
-    receiptNumber: generateReceiptNumber(),
+    organisationId: orgId,
+    receiptNumber: generateReceiptNumber(orgId),
     ...data,
     issuedAt: new Date().toISOString(),
     status: 'issued',
@@ -240,51 +365,164 @@ export function getReceipt(id: string): Receipt | null {
   return loadState().receipts.find(r => r.id === id) || null;
 }
 
-export function getReceiptByNumber(number: string): Receipt | null {
-  return loadState().receipts.find(r => r.receiptNumber === number) || null;
-}
-
 export function getReceiptByPaymentId(paymentId: string): Receipt | null {
   return loadState().receipts.find(r => r.paymentId === paymentId) || null;
 }
 
-export function getAllPaymentRequests(): PaymentRequest[] {
-  return loadState().paymentRequests;
+export function getReceiptsByOrganisation(orgId: string): Receipt[] {
+  return loadState().receipts.filter(r => r.organisationId === orgId);
 }
 
-export function getAllPayments(): Payment[] {
-  return loadState().payments;
+// Invoice management
+export function generateInvoiceNumber(orgId: string): string {
+  const state = loadState();
+  const org = state.organisations.find(o => o.id === orgId);
+  if (!org) return 'INV-0001';
+  
+  const prefix = org.invoicePrefix || 'INV';
+  const year = new Date().getFullYear();
+  const existingCount = state.invoices.filter(i => 
+    i.organisationId === orgId && i.invoiceNumber.startsWith(`${prefix}-${year}`)
+  ).length;
+  const nextNumber = String(existingCount + 1).padStart(4, '0');
+  return `${prefix}-${year}-${nextNumber}`;
 }
 
-export function getAllReceipts(): Receipt[] {
-  return loadState().receipts;
+export function createInvoice(orgId: string, data: {
+  paymentRequestId: string;
+  customerId: string;
+  customerName: string;
+  customerReferenceId: string;
+  amount: number;
+  currency: string;
+  description: string;
+  dueDate: string | null;
+}): Invoice {
+  const state = loadState();
+  const invoice: Invoice = {
+    id: uuidv4(),
+    organisationId: orgId,
+    invoiceNumber: generateInvoiceNumber(orgId),
+    ...data,
+    status: 'draft',
+    createdAt: new Date().toISOString(),
+  };
+  state.invoices.push(invoice);
+  saveState(state);
+  return invoice;
 }
 
-export function verifyAdminPassword(password: string): boolean {
-  return password === ADMIN_PASSWORD;
+export function getInvoicesByOrganisation(orgId: string): Invoice[] {
+  return loadState().invoices.filter(i => i.organisationId === orgId);
 }
 
-// Simulate Razorpay order creation (in production, this would be server-side)
+// Razorpay simulation (in production, this would be server-side)
 export function simulateCreateRazorpayOrder(amountPaise: number, currency: string, receipt: string): string {
-  // Generate a simulated Razorpay order ID
-  const orderId = `order_${uuidv4().replace(/-/g, '').substring(0, 14)}`;
-  return orderId;
+  return `order_${uuidv4().replace(/-/g, '').substring(0, 14)}`;
 }
 
-// Simulate payment verification (in production, this would be server-side with actual Razorpay SDK)
 export function simulateVerifyPayment(
   razorpayOrderId: string,
   razorpayPaymentId: string,
   razorpaySignature: string
 ): { valid: boolean; paymentMethod: string } {
-  // In test mode, we accept any signature that's non-empty
   if (!razorpaySignature || razorpaySignature.length < 10) {
     return { valid: false, paymentMethod: '' };
   }
-  // Verify the order exists
   const pr = getPaymentRequestByOrderId(razorpayOrderId);
   if (!pr) {
     return { valid: false, paymentMethod: '' };
   }
-  return { valid: true, paymentMethod: 'UPI' }; // Simulated payment method
+  return { valid: true, paymentMethod: 'UPI' };
+}
+
+// Platform info
+export function getPlatformName(): string {
+  return PLATFORM_NAME;
+}
+
+export function getPlatformTagline(): string {
+  return PLATFORM_TAGLINE;
+}
+
+// Demo data seeder
+export function seedDemoOrganisation(): { organisation: Organisation; user: User } {
+  const state = loadState();
+  
+  // Check if demo org already exists
+  const existingDemo = state.organisations.find(o => o.email === 'demo@eduglobal.in');
+  if (existingDemo) {
+    const demoUser = state.users.find(u => u.organisationId === existingDemo.id);
+    return { organisation: existingDemo, user: demoUser! };
+  }
+  
+  const org: Organisation = {
+    id: uuidv4(),
+    name: 'EduGlobal International Academy',
+    type: 'school',
+    email: 'accounts@eduglobal.in',
+    phone: '+91 80 4567 8900',
+    address: '42, Education Lane, Knowledge Park',
+    city: 'Bengaluru',
+    state: 'Karnataka',
+    pincode: '560001',
+    country: 'India',
+    website: 'https://eduglobal.example.com',
+    logo: '',
+    gstin: '29AABCU9603R1ZM',
+    bankName: 'State Bank of India',
+    bankAccount: '3876 1204 5890 012',
+    bankIfsc: 'SBIN0001234',
+    bankBranch: 'Knowledge Park Branch, Bengaluru',
+    declaration: 'We declare that this receipt shows the true value of fees received. This is a computer-generated receipt.',
+    receiptPrefix: 'EG',
+    invoicePrefix: 'EG-INV',
+    currency: 'INR',
+    receiptFooter: 'This is a computer generated receipt. For queries, contact accounts@eduglobal.in',
+    termsAndConditions: '1. Fees once paid is non-refundable.\n2. This receipt is valid only for the mentioned academic session.\n3. Please preserve this receipt for future reference.',
+    preparedBy: 'Accounts Department',
+    authorisedSignatory: 'Principal',
+    signatoryImage: '',
+    razorpayKeyId: '',
+    razorpayConfigured: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    isActive: true,
+  };
+  
+  const user: User = {
+    id: uuidv4(),
+    organisationId: org.id,
+    email: 'admin@eduglobal.in',
+    name: 'Demo Admin',
+    role: 'owner',
+    passwordHash: btoa('demo123'),
+    createdAt: new Date().toISOString(),
+    isActive: true,
+  };
+  
+  // Add demo fee categories
+  const feeCategories: FeeCategory[] = [
+    { id: uuidv4(), organisationId: org.id, name: 'Tuition Fees', description: 'Monthly tuition fees', defaultAmount: 15000, currency: 'INR', isActive: true, createdAt: new Date().toISOString() },
+    { id: uuidv4(), organisationId: org.id, name: 'Lab Fees', description: 'Science laboratory fees', defaultAmount: 2500, currency: 'INR', isActive: true, createdAt: new Date().toISOString() },
+    { id: uuidv4(), organisationId: org.id, name: 'Library Fees', description: 'Annual library membership', defaultAmount: 1200, currency: 'INR', isActive: true, createdAt: new Date().toISOString() },
+    { id: uuidv4(), organisationId: org.id, name: 'Examination Fees', description: 'Term examination fees', defaultAmount: 1800, currency: 'INR', isActive: true, createdAt: new Date().toISOString() },
+    { id: uuidv4(), organisationId: org.id, name: 'Transport Fees', description: 'Monthly transport charges', defaultAmount: 3500, currency: 'INR', isActive: true, createdAt: new Date().toISOString() },
+    { id: uuidv4(), organisationId: org.id, name: 'Soft Skills Program', description: 'Personality development course', defaultAmount: 850, currency: 'INR', isActive: true, createdAt: new Date().toISOString() },
+  ];
+  
+  // Add demo customers
+  const demoCustomers: Customer[] = [
+    { id: uuidv4(), organisationId: org.id, customerId: 'STU-001', name: 'Aarav Sharma', email: 'aarav@example.com', phone: '+91 9876543210', address: '12, MG Road, Bengaluru', referenceType: 'student', referenceId: 'STU-001', additionalInfo: 'B.Com (Hons)', createdAt: new Date().toISOString() },
+    { id: uuidv4(), organisationId: org.id, customerId: 'STU-002', name: 'Priya Patel', email: 'priya@example.com', phone: '+91 9876543211', address: '45, Brigade Road, Bengaluru', referenceType: 'student', referenceId: 'STU-002', additionalInfo: 'B.Sc Computer Science', createdAt: new Date().toISOString() },
+    { id: uuidv4(), organisationId: org.id, customerId: 'STU-003', name: 'Rohan Gupta', email: 'rohan@example.com', phone: '+91 9876543212', address: '78, Koramangala, Bengaluru', referenceType: 'student', referenceId: 'STU-003', additionalInfo: 'BBA', createdAt: new Date().toISOString() },
+  ];
+  
+  state.organisations.push(org);
+  state.users.push(user);
+  state.feeCategories.push(...feeCategories);
+  state.customers.push(...demoCustomers);
+  saveState(state);
+  
+  return { organisation: org, user };
 }

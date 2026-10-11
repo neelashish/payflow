@@ -11,7 +11,6 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -27,7 +26,6 @@
     background: #64748b;
   }
 
-  /* Print styles for receipt */
   @media print {
     body * {
       visibility: hidden;

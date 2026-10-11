@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { createPaymentRequest, updatePaymentRequest, simulateCreateRazorpayOrder, createPayment, createReceipt, getOrganisation, getFeeItems } from '../store';
-import type { PaymentRequest } from '../types';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { getOrganisation, getFeeCategoriesByOrganisation, createPaymentRequest, updatePaymentRequest, simulateCreateRazorpayOrder, createPayment, createReceipt, addCustomer } from '../store';
+import type { Organisation, FeeCategory } from '../types';
 
 declare global {
   interface Window {
@@ -11,57 +11,74 @@ declare global {
 
 export default function PaymentPage() {
   const navigate = useNavigate();
-  const organisation = getOrganisation();
-  const feeItems = getFeeItems().filter(f => f.active);
+  const [searchParams] = useSearchParams();
+  const orgId = searchParams.get('org');
   
+  const [organisation, setOrganisation] = useState<Organisation | null>(null);
+  const [feeCategories, setFeeCategories] = useState<FeeCategory[]>([]);
   const [form, setForm] = useState({
-    studentName: '',
-    studentId: '',
-    course: '',
-    academicSession: '2026-27',
-    parentName: '',
-    email: '',
-    phone: '',
-    feeDescription: '',
+    customerName: '',
+    customerReferenceId: '',
+    customerEmail: '',
+    customerPhone: '',
+    feeCategoryId: '',
     customAmount: '',
+    description: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [processing, setProcessing] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
-  const [selectedFeeAmount, setSelectedFeeAmount] = useState<number>(0);
+
+  useEffect(() => {
+    if (orgId) {
+      const org = getOrganisation(orgId);
+      setOrganisation(org);
+      if (org) {
+        setFeeCategories(getFeeCategoriesByOrganisation(orgId).filter(f => f.isActive));
+      }
+    }
+  }, [orgId]);
+
+  if (!orgId || !organisation) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+        <div className="max-w-md w-full text-center">
+          <div className="bg-slate-800 rounded-xl border border-slate-700 p-8">
+            <i className="fas fa-exclamation-triangle text-4xl text-amber-400 mb-4"></i>
+            <h2 className="text-xl font-bold text-white mb-2">Invalid Payment Link</h2>
+            <p className="text-slate-400 mb-6">This payment link is invalid or the organisation is not found.</p>
+            <button
+              onClick={() => navigate('/')}
+              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
+            >
+              Go to Home
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const validate = () => {
     const errs: Record<string, string> = {};
-    if (!form.studentName.trim()) errs.studentName = 'Student name is required';
-    if (!form.studentId.trim()) errs.studentId = 'Student ID is required';
-    if (!form.course.trim()) errs.course = 'Course/Class is required';
-    if (!form.email.trim()) errs.email = 'Email is required';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Invalid email address';
-    if (!form.phone.trim()) errs.phone = 'Mobile number is required';
-    else if (!/^\+?[\d\s-]{10,15}$/.test(form.phone)) errs.phone = 'Invalid mobile number';
-    if (!form.feeDescription) errs.feeDescription = 'Please select a fee type';
-    if (form.feeDescription === 'custom' && (!form.customAmount || parseFloat(form.customAmount) <= 0)) {
+    if (!form.customerName.trim()) errs.customerName = 'Name is required';
+    if (!form.customerEmail.trim()) errs.customerEmail = 'Email is required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.customerEmail)) errs.customerEmail = 'Invalid email';
+    if (!form.customerPhone.trim()) errs.customerPhone = 'Mobile number is required';
+    if (!form.feeCategoryId) errs.feeCategoryId = 'Please select a fee category';
+    if (form.feeCategoryId === 'custom' && (!form.customAmount || parseFloat(form.customAmount) <= 0)) {
       errs.customAmount = 'Please enter a valid amount';
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
-  const handleFeeSelect = (desc: string) => {
-    setForm(prev => ({ ...prev, feeDescription: desc }));
-    const feeItem = feeItems.find(f => f.description === desc);
-    if (feeItem) {
-      setSelectedFeeAmount(feeItem.amount);
-    } else {
-      setSelectedFeeAmount(0);
-    }
-  };
-
   const getAmount = (): number => {
-    if (form.feeDescription === 'custom') {
+    if (form.feeCategoryId === 'custom') {
       return parseFloat(form.customAmount) || 0;
     }
-    return selectedFeeAmount;
+    const fee = feeCategories.find(f => f.id === form.feeCategoryId);
+    return fee?.defaultAmount || 0;
   };
 
   const handleProceed = () => {
@@ -77,66 +94,42 @@ export default function PaymentPage() {
       const amount = getAmount();
       const amountPaise = Math.round(amount * 100);
       
-      // Step 1: Create payment request
-      const paymentRequest = createPaymentRequest({
-        studentId: form.studentId,
-        studentName: form.studentName,
-        studentAdmissionId: form.studentId,
-        course: form.course,
-        academicSession: form.academicSession,
-        parentName: form.parentName,
-        email: form.email,
-        phone: form.phone,
-        feeDescription: form.feeDescription === 'custom' ? `Custom Fee - ${form.customAmount}` : form.feeDescription,
-        amountPaise,
-        currency: 'INR',
+      // Create or find customer
+      const customer = addCustomer(organisation.id, {
+        customerId: form.customerReferenceId || `CUST-${Date.now()}`,
+        name: form.customerName,
+        email: form.customerEmail,
+        phone: form.customerPhone,
+        address: '',
+        referenceType: 'customer',
+        referenceId: form.customerReferenceId,
+        additionalInfo: '',
       });
 
-      // Step 2: Create Razorpay order (simulated)
-      const orderId = simulateCreateRazorpayOrder(amountPaise, 'INR', paymentRequest.id);
+      const fee = feeCategories.find(f => f.id === form.feeCategoryId);
+      const feeDescription = form.feeCategoryId === 'custom' ? `Custom Payment - ₹${form.customAmount}` : fee?.name || 'Payment';
+
+      // Create payment request
+      const paymentRequest = createPaymentRequest(organisation.id, {
+        customerId: customer.id,
+        customerName: form.customerName,
+        customerEmail: form.customerEmail,
+        customerPhone: form.customerPhone,
+        customerReferenceId: form.customerReferenceId,
+        feeCategoryId: form.feeCategoryId,
+        feeDescription,
+        amountPaise,
+        currency: organisation.currency,
+        description: form.description || feeDescription,
+        dueDate: null,
+      });
+
+      // Create Razorpay order (simulated)
+      const orderId = simulateCreateRazorpayOrder(amountPaise, organisation.currency, paymentRequest.id);
       updatePaymentRequest(paymentRequest.id, { razorpayOrderId: orderId });
 
-      // Step 3: Open Razorpay Checkout
-      if (typeof window.Razorpay === 'undefined') {
-        // Fallback for when Razorpay SDK is not loaded (demo mode)
-        await simulatePaymentFlow(paymentRequest, orderId, amountPaise);
-        return;
-      }
-
-      const options = {
-        key: 'rzp_test_demo_key', // Test key - in production, from env
-        amount: amountPaise,
-        currency: 'INR',
-        name: organisation.name,
-        description: form.feeDescription,
-        order_id: orderId,
-        handler: async function(response: any) {
-          // Step 4: Verify payment
-          await verifyAndProcess(paymentRequest, orderId, response.razorpay_payment_id, response.razorpay_signature, response.razorpay_order_id, amountPaise);
-        },
-        prefill: {
-          name: form.studentName,
-          email: form.email,
-          contact: form.phone,
-        },
-        theme: {
-          color: '#1a365d',
-        },
-        modal: {
-          ondismiss: function() {
-            setProcessing(false);
-            updatePaymentRequest(paymentRequest.id, { status: 'cancelled' });
-          },
-        },
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', function(response: any) {
-        setProcessing(false);
-        updatePaymentRequest(paymentRequest.id, { status: 'failed' });
-        navigate(`/payment/failed?pr=${paymentRequest.id}&reason=${encodeURIComponent(response.error.description || 'Payment failed')}`);
-      });
-      rzp.open();
+      // Simulate payment (in production, this would open Razorpay Checkout)
+      await simulatePaymentFlow(paymentRequest, orderId, amountPaise);
     } catch (error) {
       console.error('Payment error:', error);
       setProcessing(false);
@@ -144,7 +137,7 @@ export default function PaymentPage() {
     }
   };
 
-  const simulatePaymentFlow = async (paymentRequest: PaymentRequest, orderId: string, amountPaise: number) => {
+  const simulatePaymentFlow = async (paymentRequest: any, orderId: string, amountPaise: number) => {
     // Demo mode - simulate successful payment
     const paymentId = `pay_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const signature = `sig_${Date.now()}_${Math.random().toString(36).substr(2, 20)}`;
@@ -153,7 +146,7 @@ export default function PaymentPage() {
   };
 
   const verifyAndProcess = async (
-    paymentRequest: PaymentRequest,
+    paymentRequest: any,
     orderId: string,
     paymentId: string,
     signature: string,
@@ -164,7 +157,6 @@ export default function PaymentPage() {
       // Simulate server-side verification
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Verify signature (simulated)
       if (!signature || signature.length < 10) {
         updatePaymentRequest(paymentRequest.id, { status: 'failed' });
         navigate(`/payment/failed?pr=${paymentRequest.id}&reason=Payment verification failed`);
@@ -172,13 +164,13 @@ export default function PaymentPage() {
       }
 
       // Create payment record
-      const payment = createPayment({
+      const payment = createPayment(organisation.id, {
         paymentRequestId: paymentRequest.id,
         razorpayOrderId: orderId,
         razorpayPaymentId: paymentId,
         paymentMethod: 'Online (Razorpay)',
         amountPaise,
-        currency: 'INR',
+        currency: organisation.currency,
         status: 'captured',
       });
 
@@ -186,17 +178,15 @@ export default function PaymentPage() {
       updatePaymentRequest(paymentRequest.id, { status: 'captured', razorpayOrderId: orderId });
 
       // Generate receipt
-      const receipt = createReceipt({
+      const receipt = createReceipt(organisation.id, {
         paymentId: payment.id,
         paymentRequestId: paymentRequest.id,
-        studentId: paymentRequest.studentId,
-        studentName: paymentRequest.studentName,
-        studentAdmissionId: paymentRequest.studentAdmissionId,
-        course: paymentRequest.course,
-        academicSession: paymentRequest.academicSession,
-        parentName: paymentRequest.parentName,
+        customerId: paymentRequest.customerId,
+        customerName: paymentRequest.customerName,
+        customerReferenceId: paymentRequest.customerReferenceId,
+        customerEmail: paymentRequest.customerEmail,
         amount: amountPaise / 100,
-        currency: 'INR',
+        currency: organisation.currency,
         feeDescription: paymentRequest.feeDescription,
         paymentMethod: payment.paymentMethod,
         razorpayPaymentId: paymentId,
@@ -204,7 +194,7 @@ export default function PaymentPage() {
       });
 
       // Navigate to success page
-      navigate(`/payment/success?receipt=${receipt.id}&pr=${paymentRequest.id}`);
+      navigate(`/payment/success?receipt=${receipt.id}&pr=${paymentRequest.id}&org=${organisation.id}`);
     } catch (error) {
       console.error('Verification error:', error);
       setProcessing(false);
@@ -223,24 +213,16 @@ export default function PaymentPage() {
             
             <div className="space-y-3 mb-6">
               <div className="flex justify-between py-2 border-b border-slate-700">
-                <span className="text-slate-400">Student Name</span>
-                <span className="text-white font-medium">{form.studentName}</span>
+                <span className="text-slate-400">Name</span>
+                <span className="text-white font-medium">{form.customerName}</span>
               </div>
               <div className="flex justify-between py-2 border-b border-slate-700">
-                <span className="text-slate-400">Student ID</span>
-                <span className="text-white font-medium">{form.studentId}</span>
+                <span className="text-slate-400">Reference ID</span>
+                <span className="text-white font-medium">{form.customerReferenceId || 'N/A'}</span>
               </div>
               <div className="flex justify-between py-2 border-b border-slate-700">
-                <span className="text-slate-400">Course</span>
-                <span className="text-white font-medium">{form.course}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b border-slate-700">
-                <span className="text-slate-400">Academic Session</span>
-                <span className="text-white font-medium">{form.academicSession}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b border-slate-700">
-                <span className="text-slate-400">Fee Description</span>
-                <span className="text-white font-medium">{form.feeDescription === 'custom' ? 'Custom Fee' : form.feeDescription}</span>
+                <span className="text-slate-400">Description</span>
+                <span className="text-white font-medium">{form.feeCategoryId === 'custom' ? 'Custom Payment' : feeCategories.find(f => f.id === form.feeCategoryId)?.name}</span>
               </div>
               <div className="flex justify-between py-3 bg-blue-900/30 rounded-lg px-3">
                 <span className="text-blue-300 font-bold text-lg">Amount Payable</span>
@@ -259,26 +241,11 @@ export default function PaymentPage() {
               <button
                 onClick={handlePayment}
                 disabled={processing}
-                className="flex-1 py-3 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-3 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold transition disabled:opacity-50"
               >
-                {processing ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Processing...
-                  </span>
-                ) : (
-                  `Pay ₹${amount.toFixed(2)}`
-                )}
+                {processing ? 'Processing...' : `Pay ₹${amount.toFixed(2)}`}
               </button>
             </div>
-
-            <p className="text-xs text-slate-500 mt-4 text-center">
-              <i className="fas fa-lock mr-1"></i>
-              Payments are secured by Razorpay. We never store your card details.
-            </p>
           </div>
         </div>
       </div>
@@ -290,138 +257,95 @@ export default function PaymentPage() {
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-900/50 border border-blue-700 mb-4">
-            <i className="fas fa-graduation-cap text-2xl text-blue-400"></i>
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-900/50 border border-blue-700 mb-4 overflow-hidden">
+            {organisation.logo ? (
+              <img src={organisation.logo} alt="Logo" className="w-full h-full object-cover" />
+            ) : (
+              <i className="fas fa-building text-2xl text-blue-400"></i>
+            )}
           </div>
           <h1 className="text-2xl font-bold text-white mb-1">{organisation.name}</h1>
-          <p className="text-slate-400 text-sm">Online Fee Payment Portal</p>
+          <p className="text-slate-400 text-sm">Online Payment Portal</p>
         </div>
 
         {/* Payment Form */}
         <div className="bg-slate-800 rounded-xl border border-slate-700 p-6 md:p-8">
-          <h2 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
-            <i className="fas fa-file-invoice text-blue-400"></i>
-            Fee Payment Details
-          </h2>
+          <h2 className="text-lg font-semibold text-white mb-6">Payment Details</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Student Name */}
             <div>
-              <label className="block text-sm text-slate-300 mb-1">Student Name *</label>
+              <label className="block text-sm text-slate-300 mb-1">Name *</label>
               <input
                 type="text"
-                value={form.studentName}
-                onChange={e => setForm(prev => ({ ...prev, studentName: e.target.value }))}
-                className={`w-full px-3 py-2.5 bg-slate-900 border ${errors.studentName ? 'border-red-500' : 'border-slate-600'} rounded-lg text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition`}
-                placeholder="Enter student name"
+                value={form.customerName}
+                onChange={e => setForm(prev => ({ ...prev, customerName: e.target.value }))}
+                className={`w-full px-3 py-2.5 bg-slate-900 border ${errors.customerName ? 'border-red-500' : 'border-slate-600'} rounded-lg text-white focus:border-blue-500 focus:outline-none`}
+                placeholder="Your name"
               />
-              {errors.studentName && <p className="text-red-400 text-xs mt-1">{errors.studentName}</p>}
+              {errors.customerName && <p className="text-red-400 text-xs mt-1">{errors.customerName}</p>}
             </div>
 
-            {/* Student ID */}
             <div>
-              <label className="block text-sm text-slate-300 mb-1">Student ID / Admission No. *</label>
+              <label className="block text-sm text-slate-300 mb-1">Reference ID / Customer ID</label>
               <input
                 type="text"
-                value={form.studentId}
-                onChange={e => setForm(prev => ({ ...prev, studentId: e.target.value }))}
-                className={`w-full px-3 py-2.5 bg-slate-900 border ${errors.studentId ? 'border-red-500' : 'border-slate-600'} rounded-lg text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition`}
-                placeholder="e.g., STU-001"
-              />
-              {errors.studentId && <p className="text-red-400 text-xs mt-1">{errors.studentId}</p>}
-            </div>
-
-            {/* Course */}
-            <div>
-              <label className="block text-sm text-slate-300 mb-1">Class / Course / Department *</label>
-              <input
-                type="text"
-                value={form.course}
-                onChange={e => setForm(prev => ({ ...prev, course: e.target.value }))}
-                className={`w-full px-3 py-2.5 bg-slate-900 border ${errors.course ? 'border-red-500' : 'border-slate-600'} rounded-lg text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition`}
-                placeholder="e.g., B.Com (Hons)"
-              />
-              {errors.course && <p className="text-red-400 text-xs mt-1">{errors.course}</p>}
-            </div>
-
-            {/* Academic Session */}
-            <div>
-              <label className="block text-sm text-slate-300 mb-1">Academic Session</label>
-              <input
-                type="text"
-                value={form.academicSession}
-                onChange={e => setForm(prev => ({ ...prev, academicSession: e.target.value }))}
-                className="w-full px-3 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition"
-                placeholder="e.g., 2026-27"
-              />
-            </div>
-
-            {/* Parent Name */}
-            <div>
-              <label className="block text-sm text-slate-300 mb-1">Parent / Payer Name</label>
-              <input
-                type="text"
-                value={form.parentName}
-                onChange={e => setForm(prev => ({ ...prev, parentName: e.target.value }))}
-                className="w-full px-3 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition"
+                value={form.customerReferenceId}
+                onChange={e => setForm(prev => ({ ...prev, customerReferenceId: e.target.value }))}
+                className="w-full px-3 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white focus:border-blue-500 focus:outline-none"
                 placeholder="Optional"
               />
             </div>
 
-            {/* Email */}
             <div>
-              <label className="block text-sm text-slate-300 mb-1">Email Address *</label>
+              <label className="block text-sm text-slate-300 mb-1">Email *</label>
               <input
                 type="email"
-                value={form.email}
-                onChange={e => setForm(prev => ({ ...prev, email: e.target.value }))}
-                className={`w-full px-3 py-2.5 bg-slate-900 border ${errors.email ? 'border-red-500' : 'border-slate-600'} rounded-lg text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition`}
+                value={form.customerEmail}
+                onChange={e => setForm(prev => ({ ...prev, customerEmail: e.target.value }))}
+                className={`w-full px-3 py-2.5 bg-slate-900 border ${errors.customerEmail ? 'border-red-500' : 'border-slate-600'} rounded-lg text-white focus:border-blue-500 focus:outline-none`}
                 placeholder="email@example.com"
               />
-              {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
+              {errors.customerEmail && <p className="text-red-400 text-xs mt-1">{errors.customerEmail}</p>}
             </div>
 
-            {/* Phone */}
-            <div className="md:col-span-2">
+            <div>
               <label className="block text-sm text-slate-300 mb-1">Mobile Number *</label>
               <input
                 type="tel"
-                value={form.phone}
-                onChange={e => setForm(prev => ({ ...prev, phone: e.target.value }))}
-                className={`w-full px-3 py-2.5 bg-slate-900 border ${errors.phone ? 'border-red-500' : 'border-slate-600'} rounded-lg text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition`}
+                value={form.customerPhone}
+                onChange={e => setForm(prev => ({ ...prev, customerPhone: e.target.value }))}
+                className={`w-full px-3 py-2.5 bg-slate-900 border ${errors.customerPhone ? 'border-red-500' : 'border-slate-600'} rounded-lg text-white focus:border-blue-500 focus:outline-none`}
                 placeholder="+91 9876543210"
               />
-              {errors.phone && <p className="text-red-400 text-xs mt-1">{errors.phone}</p>}
+              {errors.customerPhone && <p className="text-red-400 text-xs mt-1">{errors.customerPhone}</p>}
             </div>
 
-            {/* Fee Description */}
             <div className="md:col-span-2">
-              <label className="block text-sm text-slate-300 mb-1">Fee Description *</label>
+              <label className="block text-sm text-slate-300 mb-1">Payment For *</label>
               <select
-                value={form.feeDescription}
-                onChange={e => handleFeeSelect(e.target.value)}
-                className={`w-full px-3 py-2.5 bg-slate-900 border ${errors.feeDescription ? 'border-red-500' : 'border-slate-600'} rounded-lg text-white focus:border-blue-500 focus:outline-none transition`}
+                value={form.feeCategoryId}
+                onChange={e => setForm(prev => ({ ...prev, feeCategoryId: e.target.value }))}
+                className={`w-full px-3 py-2.5 bg-slate-900 border ${errors.feeCategoryId ? 'border-red-500' : 'border-slate-600'} rounded-lg text-white focus:border-blue-500 focus:outline-none`}
               >
-                <option value="">Select fee type</option>
-                {feeItems.map(fee => (
-                  <option key={fee.id} value={fee.description}>
-                    {fee.description} - ₹{fee.amount.toLocaleString('en-IN')}
+                <option value="">Select payment type</option>
+                {feeCategories.map(fee => (
+                  <option key={fee.id} value={fee.id}>
+                    {fee.name} - ₹{fee.defaultAmount.toLocaleString('en-IN')}
                   </option>
                 ))}
                 <option value="custom">Custom Amount</option>
               </select>
-              {errors.feeDescription && <p className="text-red-400 text-xs mt-1">{errors.feeDescription}</p>}
+              {errors.feeCategoryId && <p className="text-red-400 text-xs mt-1">{errors.feeCategoryId}</p>}
             </div>
 
-            {/* Custom Amount */}
-            {form.feeDescription === 'custom' && (
+            {form.feeCategoryId === 'custom' && (
               <div className="md:col-span-2">
                 <label className="block text-sm text-slate-300 mb-1">Amount (₹) *</label>
                 <input
                   type="number"
                   value={form.customAmount}
                   onChange={e => setForm(prev => ({ ...prev, customAmount: e.target.value }))}
-                  className={`w-full px-3 py-2.5 bg-slate-900 border ${errors.customAmount ? 'border-red-500' : 'border-slate-600'} rounded-lg text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition`}
+                  className={`w-full px-3 py-2.5 bg-slate-900 border ${errors.customAmount ? 'border-red-500' : 'border-slate-600'} rounded-lg text-white focus:border-blue-500 focus:outline-none`}
                   placeholder="Enter amount"
                   min="1"
                   step="0.01"
@@ -429,9 +353,19 @@ export default function PaymentPage() {
                 {errors.customAmount && <p className="text-red-400 text-xs mt-1">{errors.customAmount}</p>}
               </div>
             )}
+
+            <div className="md:col-span-2">
+              <label className="block text-sm text-slate-300 mb-1">Description (Optional)</label>
+              <textarea
+                value={form.description}
+                onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))}
+                rows={2}
+                className="w-full px-3 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white focus:border-blue-500 focus:outline-none resize-none"
+                placeholder="Additional details"
+              />
+            </div>
           </div>
 
-          {/* Amount Display */}
           {amount > 0 && (
             <div className="mt-6 p-4 bg-blue-900/20 border border-blue-800 rounded-lg">
               <div className="flex justify-between items-center">
@@ -441,32 +375,16 @@ export default function PaymentPage() {
             </div>
           )}
 
-          {/* Submit Button */}
           <button
             onClick={handleProceed}
-            className="w-full mt-6 py-3.5 px-6 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={processing}
+            className="w-full mt-6 py-3.5 px-6 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg transition"
           >
-            <i className="fas fa-arrow-right mr-2"></i>
             Proceed to Payment
           </button>
-
-          <div className="mt-4 flex items-center justify-center gap-4 text-xs text-slate-500">
-            <span><i className="fas fa-shield-alt mr-1"></i>Secure Payment</span>
-            <span><i className="fas fa-lock mr-1"></i>SSL Encrypted</span>
-            <span><i className="fas fa-check-circle mr-1"></i>Razorpay Verified</span>
-          </div>
         </div>
 
-        {/* Footer */}
         <div className="text-center mt-6 text-xs text-slate-500">
-          <p>Powered by ReceiptFlow Payments | Razorpay Secure Checkout</p>
-          <p className="mt-1">For any queries, contact: {organisation.email}</p>
-          <p className="mt-2">
-            <a href="#/admin" className="text-blue-400 hover:text-blue-300 transition">
-              <i className="fas fa-shield-alt mr-1"></i>Admin Dashboard
-            </a>
-          </p>
+          <p>Secured by Razorpay | {organisation.name}</p>
         </div>
       </div>
     </div>
