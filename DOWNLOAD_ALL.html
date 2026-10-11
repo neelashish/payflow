@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayFlow Project - Download All Files</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #fafafa;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle { color: #888; margin-bottom: 30px; font-size: 1.1rem; }
+        .instructions {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .instructions h2 { color: #667eea; margin-bottom: 15px; font-size: 1.3rem; }
+        .instructions ol { margin-left: 20px; }
+        .instructions li { margin-bottom: 10px; color: #ccc; }
+        .instructions code {
+            background: #0a0a0a;
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: #667eea;
+            font-family: 'Courier New', monospace;
+        }
+        .file-section {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .file-header {
+            background: #252525;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+        }
+        .file-path {
+            font-family: 'Courier New', monospace;
+            color: #667eea;
+            font-size: 0.95rem;
+        }
+        .copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .copy-btn:hover { background: #5568d3; transform: translateY(-1px); }
+        .copy-btn:active { transform: translateY(0); }
+        .copy-btn.copied { background: #10b981; }
+        .file-content {
+            padding: 20px;
+            overflow-x: auto;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        pre {
+            background: #0a0a0a;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: #e0e0e0;
+        }
+        .download-all-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 30px;
+            transition: all 0.2s;
+        }
+        .download-all-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 PayFlow Project</h1>
+        <p class="subtitle">Complete Multi-Organisation Payment Platform with Interactive Demo</p>
+
+        <button class="download-all-btn" onclick="downloadAllFiles()">
+            📦 Download All Files as ZIP
+        </button>
+
+        <div class="instructions">
+            <h2>📋 Quick Setup Instructions</h2>
+            <ol>
+                <li>Click "Copy" button for each file below</li>
+                <li>Create the file in your project folder with the exact path shown</li>
+                <li>Paste the content</li>
+                <li>Run <code>npm install</code> to install dependencies</li>
+                <li>Run <code>npm run dev</code> to start the development server</li>
+                <li>Open <code>http://localhost:3000</code> in your browser</li>
+            </ol>
+        </div>
+
+        <div id="files-container"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <script>
+        const files = [
+            {
+                path: 'package.json',
+                content: `{
+  "name": "payflow-platform",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "html2canvas": "^1.4.1",
+    "jspdf": "^2.5.1",
+    "lucide-react": "^0.294.0",
+    "papaparse": "^5.4.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.20.0",
+    "uuid": "^9.0.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/papaparse": "^5.3.14",
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@types/uuid": "^9.0.7",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.3.6",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.8"
+  }
+}`
+            },
+            {
+                path: 'index.html',
+                content: `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PayFlow - Multi-Organisation Payment Platform</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>`
+            },
+            {
+                path: 'vite.config.ts',
+                content: `import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    port: 3000,
+    host: true
+  }
+})`
+            },
+            {
+                path: 'tsconfig.json',
+                content: `{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}`
+            },
+            {
+                path: 'tsconfig.node.json',
+                content: `{
+  "compilerOptions": {
+    "composite": true,
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true
+  },
+  "include": ["vite.config.ts"]
+}`
+            },
+            {
+                path: 'postcss.config.js',
+                content: `export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}`
+            },
+            {
+                path: 'tailwind.config.js',
+                content: `/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}`
+            },
+            {
+                path: '.gitignore',
+                content: `# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?`
+            },
+            {
+                path: 'src/main.tsx',
+                content: `import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App.tsx'
+import './index.css'
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+)`
+            },
+            {
+                path: 'src/App.tsx',
+                content: `import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import LandingPage from './components/LandingPage';
+import LoginPage from './components/LoginPage';
+import RegisterPage from './components/RegisterPage';
+import OrgDashboard from './components/OrgDashboard';
+import PaymentPage from './components/PaymentPage';
+import PaymentSuccess from './components/PaymentSuccess';
+import PaymentFailure from './components/PaymentFailure';
+import DemoPage from './components/DemoPage';
+
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/dashboard" element={<OrgDashboard />} />
+        <Route path="/pay" element={<PaymentPage />} />
+        <Route path="/payment/success" element={<PaymentSuccess />} />
+        <Route path="/payment/failed" element={<PaymentFailure />} />
+        <Route path="/demo" element={<DemoPage />} />
+      </Routes>
+    </Router>
+  );
+}
+
+export default App;`
+            },
+            {
+                path: 'src/index.css',
+                content: `@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #ffffff;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}`
+            },
+            {
+                path: 'src/types.ts',
+                content: `export interface Organisation {
+  id: string;
+  name: string;
+  type: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  country: string;
+  website: string;
+  logo: string;
+  gstin: string;
+  bankName: string;
+  bankAccount: string;
+  bankIfsc: string;
+  bankBranch: string;
+  declaration: string;
+  receiptPrefix: string;
+  invoicePrefix: string;
+  currency: string;
+  receiptFooter: string;
+  termsAndConditions: string;
+  preparedBy: string;
+  authorisedSignatory: string;
+  signatoryImage: string;
+  razorpayKeyId: string;
+  razorpayKeySecret: string;
+  razorpayConfigured: boolean;
+  createdAt: string;
+  updatedAt: string;
+  isActive: boolean;
+}
+
+export interface User {
+  id: string;
+  organisationId: string;
+  email: string;
+  name: string;
+  role: 'owner' | 'admin' | 'staff';
+  passwordHash: string;
+  createdAt: string;
+  isActive: boolean;
+}
+
+export interface Customer {
+  id: string;
+  organisationId: string;
+  customerId: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  referenceType: string;
+  referenceId: string;
+  additionalInfo: string;
+  createdAt: string;
+}
+
+export interface FeeCategory {
+  id: string;
+  organisationId: string;
+  name: string;
+  description: string;
+  defaultAmount: number;
+  currency: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export type PaymentStatus = 
+  | 'pending'
+  | 'created'
+  | 'authorised'
+  | 'captured'
+  | 'failed'
+  | 'cancelled'
+  | 'refund_pending'
+  | 'partially_refunded'
+  | 'refunded';
+
+export interface PaymentRequest {
+  id: string;
+  organisationId: string;
+  customerId: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  customerReferenceId: string;
+  feeCategoryId: string;
+  feeDescription: string;
+  amountPaise: number;
+  currency: string;
+  status: PaymentStatus;
+  razorpayOrderId: string | null;
+  dueDate: string | null;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Payment {
+  id: string;
+  organisationId: string;
+  paymentRequestId: string;
+  razorpayOrderId: string;
+  razorpayPaymentId: string;
+  paymentMethod: string;
+  amountPaise: number;
+  currency: string;
+  status: PaymentStatus;
+  capturedAt: string | null;
+  failureReason: string | null;
+  createdAt: string;
+}
+
+export interface Receipt {
+  id: string;
+  organisationId: string;
+  receiptNumber: string;
+  paymentId: string;
+  paymentRequestId: string;
+  customerId: string;
+  customerName: string;
+  customerReferenceId: string;
+  customerEmail: string;
+  amount: number;
+  currency: string;
+  feeDescription: string;
+  paymentMethod: string;
+  razorpayPaymentId: string;
+  razorpayOrderId: string;
+  issuedAt: string;
+  status: 'issued';
+}
+
+export interface Invoice {
+  id: string;
+  organisationId: string;
+  invoiceNumber: string;
+  paymentRequestId: string;
+  customerId: string;
+  customerName: string;
+  customerReferenceId: string;
+  amount: number;
+  currency: string;
+  description: string;
+  dueDate: string | null;
+  status: 'draft' | 'sent' | 'paid' | 'cancelled';
+  createdAt: string;
+}
+
+export interface WebhookEvent {
+  id: string;
+  organisationId: string;
+  eventId: string;
+  eventType: string;
+  processed: boolean;
+  receivedAt: string;
+}
+
+export interface PlatformState {
+  organisations: Organisation[];
+  users: User[];
+  customers: Customer[];
+  feeCategories: FeeCategory[];
+  paymentRequests: PaymentRequest[];
+  payments: Payment[];
+  receipts: Receipt[];
+  invoices: Invoice[];
+  webhookEvents: WebhookEvent[];
+  currentOrganisationId: string | null;
+  currentUserId: string | null;
+}`
+            }
+        ];
+
+        function copyToClipboard(text, button) {
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = button.textContent;
+                button.textContent = '✓ Copied!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        function downloadAllFiles() {
+            const zip = new JSZip();
+            
+            files.forEach(file => {
+                zip.file(file.path, file.content);
+            });
+            
+            zip.generateAsync({ type: "blob" }).then(function(content) {
+                saveAs(content, "payflow-project.zip");
+            });
+        }
+
+        function renderFiles() {
+            const container = document.getElementById('files-container');
+            
+            files.forEach((file, index) => {
+                const section = document.createElement('div');
+                section.className = 'file-section';
+                
+                section.innerHTML = \`
+                    <div class="file-header">
+                        <span class="file-path">\${file.path}</span>
+                        <button class="copy-btn" onclick="copyToClipboard(files[\${index}].content, this)">
+                            Copy
+                        </button>
+                    </div>
+                    <div class="file-content">
+                        <pre>\${escapeHtml(file.content)}</pre>
+                    </div>
+                \`;
+                
+                container.appendChild(section);
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        renderFiles();
+    </script>
+</body>
+</html>
+`
+            }
+        ];
+
+        // Render all files
+        const container = document.getElementById('files-container');
+        
+        files.forEach((file, index) => {
+            const section = document.createElement('div');
+            section.className = 'file-section';
+            
+            const header = document.createElement('div');
+            header.className = 'file-header';
+            
+            const path = document.createElement('span');
+            path.className = 'file-path';
+            path.textContent = file.path;
+            
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'copy-btn';
+            copyBtn.textContent = 'Copy';
+            copyBtn.onclick = () => copyToClipboard(file.content, copyBtn);
+            
+            header.appendChild(path);
+            header.appendChild(copyBtn);
+            
+            const content = document.createElement('div');
+            content.className = 'file-content';
+            
+            const pre = document.createElement('pre');
+            pre.textContent = file.content;
+            
+            content.appendChild(pre);
+            section.appendChild(header);
+            section.appendChild(content);
+            container.appendChild(section);
+        });
+
+        function copyToClipboard(text, button) {
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = button.textContent;
+                button.textContent = '✓ Copied!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy. Please select and copy manually.');
+            });
+        }
+
+        async function downloadAllFiles() {
+            try {
+                const zip = new JSZip();
+                
+                files.forEach(file => {
+                    zip.file(file.path, file.content);
+                });
+                
+                const blob = await zip.generateAsync({ type: "blob" });
+                saveAs(blob, "payflow-project.zip");
+            } catch (error) {
+                console.error('Error creating ZIP:', error);
+                alert('Error creating ZIP file. Please copy files individually.');
+            }
+        }
+    </script>
+</body>
+</html>
