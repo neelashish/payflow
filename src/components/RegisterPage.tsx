@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, Building2, User } from 'lucide-react';
 import { registerOrganisation, setCurrentOrganisation, setCurrentUser } from '../store';
 import type { OrganisationType } from '../types';
 
@@ -50,9 +51,7 @@ export default function RegisterPage() {
   };
 
   const handleNext = () => {
-    if (step === 1 && validateStep1()) {
-      setStep(2);
-    }
+    if (step === 1 && validateStep1()) setStep(2);
   };
 
   const handleRegister = () => {
@@ -76,203 +75,146 @@ export default function RegisterPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-900 py-8 px-4">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-zinc-50 py-8 sm:py-12 px-4">
+      <div className="max-w-xl mx-auto">
+        {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Register Your Organisation</h1>
-          <p className="text-slate-400">Set up your workspace in minutes</p>
+          <Link to="/" className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-900 mb-6 transition">
+            <ArrowLeft className="w-4 h-4" />
+            Back to PayFlow
+          </Link>
+          <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 mb-2">Create your organisation</h1>
+          <p className="text-zinc-600">Set up your workspace in just a few minutes.</p>
         </div>
 
         {/* Progress */}
-        <div className="flex items-center justify-center mb-8">
-          <div className={`flex items-center justify-center w-10 h-10 rounded-full ${step >= 1 ? 'bg-blue-600' : 'bg-slate-700'} text-white font-bold`}>1</div>
-          <div className={`w-20 h-1 ${step >= 2 ? 'bg-blue-600' : 'bg-slate-700'}`}></div>
-          <div className={`flex items-center justify-center w-10 h-10 rounded-full ${step >= 2 ? 'bg-blue-600' : 'bg-slate-700'} text-white font-bold`}>2</div>
+        <div className="flex items-center justify-center gap-3 mb-8">
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${step >= 1 ? 'bg-zinc-900 text-white' : 'bg-zinc-200 text-zinc-500'}`}>
+            <span>1</span>
+            <span className="hidden sm:inline">Organisation</span>
+          </div>
+          <div className={`w-8 h-px ${step >= 2 ? 'bg-zinc-900' : 'bg-zinc-200'}`} />
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${step >= 2 ? 'bg-zinc-900 text-white' : 'bg-zinc-200 text-zinc-500'}`}>
+            <span>2</span>
+            <span className="hidden sm:inline">Admin Account</span>
+          </div>
         </div>
 
         {step === 1 && (
-          <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
-            <h2 className="text-xl font-bold text-white mb-6">Organisation Details</h2>
+          <div className="bg-white rounded-xl border border-zinc-200 p-6 sm:p-8 animate-fade-in">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-lg bg-zinc-100 flex items-center justify-center">
+                <Building2 className="w-5 h-5 text-zinc-700" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-zinc-900">Organisation Details</h2>
+                <p className="text-sm text-zinc-500">Tell us about your organisation</p>
+              </div>
+            </div>
+
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-slate-300 mb-1">Organisation Name *</label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
-                  className={`w-full px-3 py-2.5 bg-slate-900 border ${errors.name ? 'border-red-500' : 'border-slate-600'} rounded-lg text-white focus:border-blue-500 focus:outline-none`}
-                  placeholder="e.g., ABC International School"
-                />
-                {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name}</p>}
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Organisation Name *</label>
+                <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className={`input ${errors.name ? 'border-red-300' : ''}`} placeholder="e.g., ABC International School" />
+                {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
               </div>
 
               <div>
-                <label className="block text-sm text-slate-300 mb-1">Organisation Type *</label>
-                <select
-                  value={form.type}
-                  onChange={e => setForm(prev => ({ ...prev, type: e.target.value as OrganisationType }))}
-                  className="w-full px-3 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white focus:border-blue-500 focus:outline-none"
-                >
-                  {orgTypes.map(t => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
-                  ))}
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Organisation Type *</label>
+                <select value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value as OrganisationType }))} className="input">
+                  {orgTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-slate-300 mb-1">Email *</label>
-                  <input
-                    type="email"
-                    value={form.email}
-                    onChange={e => setForm(prev => ({ ...prev, email: e.target.value }))}
-                    className={`w-full px-3 py-2.5 bg-slate-900 border ${errors.email ? 'border-red-500' : 'border-slate-600'} rounded-lg text-white focus:border-blue-500 focus:outline-none`}
-                    placeholder="org@example.com"
-                  />
-                  {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
+                  <label className="block text-sm font-medium text-zinc-700 mb-1">Email *</label>
+                  <input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} className={`input ${errors.email ? 'border-red-300' : ''}`} placeholder="org@example.com" />
+                  {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
                 </div>
                 <div>
-                  <label className="block text-sm text-slate-300 mb-1">Phone *</label>
-                  <input
-                    type="tel"
-                    value={form.phone}
-                    onChange={e => setForm(prev => ({ ...prev, phone: e.target.value }))}
-                    className={`w-full px-3 py-2.5 bg-slate-900 border ${errors.phone ? 'border-red-500' : 'border-slate-600'} rounded-lg text-white focus:border-blue-500 focus:outline-none`}
-                    placeholder="+91 9876543210"
-                  />
-                  {errors.phone && <p className="text-red-400 text-xs mt-1">{errors.phone}</p>}
+                  <label className="block text-sm font-medium text-zinc-700 mb-1">Phone *</label>
+                  <input type="tel" value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} className={`input ${errors.phone ? 'border-red-300' : ''}`} placeholder="+91 9876543210" />
+                  {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm text-slate-300 mb-1">Address *</label>
-                <textarea
-                  value={form.address}
-                  onChange={e => setForm(prev => ({ ...prev, address: e.target.value }))}
-                  rows={2}
-                  className={`w-full px-3 py-2.5 bg-slate-900 border ${errors.address ? 'border-red-500' : 'border-slate-600'} rounded-lg text-white focus:border-blue-500 focus:outline-none resize-none`}
-                  placeholder="Full address"
-                />
-                {errors.address && <p className="text-red-400 text-xs mt-1">{errors.address}</p>}
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Address *</label>
+                <textarea value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))} rows={2} className={`input resize-none ${errors.address ? 'border-red-300' : ''}`} placeholder="Full address" />
+                {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm text-slate-300 mb-1">City *</label>
-                  <input
-                    type="text"
-                    value={form.city}
-                    onChange={e => setForm(prev => ({ ...prev, city: e.target.value }))}
-                    className={`w-full px-3 py-2.5 bg-slate-900 border ${errors.city ? 'border-red-500' : 'border-slate-600'} rounded-lg text-white focus:border-blue-500 focus:outline-none`}
-                  />
-                  {errors.city && <p className="text-red-400 text-xs mt-1">{errors.city}</p>}
+                  <label className="block text-sm font-medium text-zinc-700 mb-1">City *</label>
+                  <input type="text" value={form.city} onChange={e => setForm(p => ({ ...p, city: e.target.value }))} className={`input ${errors.city ? 'border-red-300' : ''}`} />
+                  {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
                 </div>
                 <div>
-                  <label className="block text-sm text-slate-300 mb-1">State *</label>
-                  <input
-                    type="text"
-                    value={form.state}
-                    onChange={e => setForm(prev => ({ ...prev, state: e.target.value }))}
-                    className={`w-full px-3 py-2.5 bg-slate-900 border ${errors.state ? 'border-red-500' : 'border-slate-600'} rounded-lg text-white focus:border-blue-500 focus:outline-none`}
-                  />
-                  {errors.state && <p className="text-red-400 text-xs mt-1">{errors.state}</p>}
+                  <label className="block text-sm font-medium text-zinc-700 mb-1">State *</label>
+                  <input type="text" value={form.state} onChange={e => setForm(p => ({ ...p, state: e.target.value }))} className={`input ${errors.state ? 'border-red-300' : ''}`} />
+                  {errors.state && <p className="text-red-500 text-xs mt-1">{errors.state}</p>}
                 </div>
-                <div>
-                  <label className="block text-sm text-slate-300 mb-1">PIN Code</label>
-                  <input
-                    type="text"
-                    value={form.pincode}
-                    onChange={e => setForm(prev => ({ ...prev, pincode: e.target.value }))}
-                    className="w-full px-3 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white focus:border-blue-500 focus:outline-none"
-                    placeholder="560001"
-                  />
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="block text-sm font-medium text-zinc-700 mb-1">PIN Code</label>
+                  <input type="text" value={form.pincode} onChange={e => setForm(p => ({ ...p, pincode: e.target.value }))} className="input" placeholder="560001" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm text-slate-300 mb-1">Website (Optional)</label>
-                <input
-                  type="url"
-                  value={form.website}
-                  onChange={e => setForm(prev => ({ ...prev, website: e.target.value }))}
-                  className="w-full px-3 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white focus:border-blue-500 focus:outline-none"
-                  placeholder="https://www.example.com"
-                />
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Website (Optional)</label>
+                <input type="url" value={form.website} onChange={e => setForm(p => ({ ...p, website: e.target.value }))} className="input" placeholder="https://www.example.com" />
               </div>
 
-              <button
-                onClick={handleNext}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition"
-              >
-                Next: Admin Account →
+              <button onClick={handleNext} className="btn-primary w-full py-3 mt-2">
+                Next: Admin Account
+                <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
         )}
 
         {step === 2 && (
-          <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
-            <h2 className="text-xl font-bold text-white mb-6">Administrator Account</h2>
+          <div className="bg-white rounded-xl border border-zinc-200 p-6 sm:p-8 animate-fade-in">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-lg bg-zinc-100 flex items-center justify-center">
+                <User className="w-5 h-5 text-zinc-700" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-zinc-900">Administrator Account</h2>
+                <p className="text-sm text-zinc-500">Create your admin login</p>
+              </div>
+            </div>
+
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-slate-300 mb-1">Your Name *</label>
-                <input
-                  type="text"
-                  value={form.adminName}
-                  onChange={e => setForm(prev => ({ ...prev, adminName: e.target.value }))}
-                  className={`w-full px-3 py-2.5 bg-slate-900 border ${errors.adminName ? 'border-red-500' : 'border-slate-600'} rounded-lg text-white focus:border-blue-500 focus:outline-none`}
-                  placeholder="Full name"
-                />
-                {errors.adminName && <p className="text-red-400 text-xs mt-1">{errors.adminName}</p>}
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Your Name *</label>
+                <input type="text" value={form.adminName} onChange={e => setForm(p => ({ ...p, adminName: e.target.value }))} className={`input ${errors.adminName ? 'border-red-300' : ''}`} placeholder="Full name" />
+                {errors.adminName && <p className="text-red-500 text-xs mt-1">{errors.adminName}</p>}
               </div>
-
               <div>
-                <label className="block text-sm text-slate-300 mb-1">Your Email *</label>
-                <input
-                  type="email"
-                  value={form.adminEmail}
-                  onChange={e => setForm(prev => ({ ...prev, adminEmail: e.target.value }))}
-                  className={`w-full px-3 py-2.5 bg-slate-900 border ${errors.adminEmail ? 'border-red-500' : 'border-slate-600'} rounded-lg text-white focus:border-blue-500 focus:outline-none`}
-                  placeholder="admin@example.com"
-                />
-                {errors.adminEmail && <p className="text-red-400 text-xs mt-1">{errors.adminEmail}</p>}
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Your Email *</label>
+                <input type="email" value={form.adminEmail} onChange={e => setForm(p => ({ ...p, adminEmail: e.target.value }))} className={`input ${errors.adminEmail ? 'border-red-300' : ''}`} placeholder="admin@example.com" />
+                {errors.adminEmail && <p className="text-red-500 text-xs mt-1">{errors.adminEmail}</p>}
               </div>
-
               <div>
-                <label className="block text-sm text-slate-300 mb-1">Password *</label>
-                <input
-                  type="password"
-                  value={form.adminPassword}
-                  onChange={e => setForm(prev => ({ ...prev, adminPassword: e.target.value }))}
-                  className={`w-full px-3 py-2.5 bg-slate-900 border ${errors.adminPassword ? 'border-red-500' : 'border-slate-600'} rounded-lg text-white focus:border-blue-500 focus:outline-none`}
-                  placeholder="At least 6 characters"
-                />
-                {errors.adminPassword && <p className="text-red-400 text-xs mt-1">{errors.adminPassword}</p>}
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Password *</label>
+                <input type="password" value={form.adminPassword} onChange={e => setForm(p => ({ ...p, adminPassword: e.target.value }))} className={`input ${errors.adminPassword ? 'border-red-300' : ''}`} placeholder="At least 6 characters" />
+                {errors.adminPassword && <p className="text-red-500 text-xs mt-1">{errors.adminPassword}</p>}
               </div>
-
               <div>
-                <label className="block text-sm text-slate-300 mb-1">Confirm Password *</label>
-                <input
-                  type="password"
-                  value={form.confirmPassword}
-                  onChange={e => setForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                  className={`w-full px-3 py-2.5 bg-slate-900 border ${errors.confirmPassword ? 'border-red-500' : 'border-slate-600'} rounded-lg text-white focus:border-blue-500 focus:outline-none`}
-                  placeholder="Re-enter password"
-                />
-                {errors.confirmPassword && <p className="text-red-400 text-xs mt-1">{errors.confirmPassword}</p>}
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Confirm Password *</label>
+                <input type="password" value={form.confirmPassword} onChange={e => setForm(p => ({ ...p, confirmPassword: e.target.value }))} className={`input ${errors.confirmPassword ? 'border-red-300' : ''}`} placeholder="Re-enter password" />
+                {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>}
               </div>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setStep(1)}
-                  className="flex-1 py-3 border border-slate-600 text-slate-300 rounded-lg hover:bg-slate-700 transition"
-                >
-                  ← Back
+              <div className="flex gap-3 mt-2">
+                <button onClick={() => setStep(1)} className="btn-secondary flex-1">
+                  <ArrowLeft className="w-4 h-4" />
+                  Back
                 </button>
-                <button
-                  onClick={handleRegister}
-                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition"
-                >
+                <button onClick={handleRegister} className="btn-primary flex-1">
                   Create Organisation
                 </button>
               </div>
@@ -280,10 +222,9 @@ export default function RegisterPage() {
           </div>
         )}
 
-        <div className="text-center mt-6 text-sm text-slate-400">
-          Already have an account?{' '}
-          <a href="#/login" className="text-blue-400 hover:text-blue-300">Sign In</a>
-        </div>
+        <p className="text-center text-sm text-zinc-500 mt-6">
+          Already have an account? <Link to="/login" className="text-indigo-600 hover:text-indigo-700 font-medium">Sign In</Link>
+        </p>
       </div>
     </div>
   );

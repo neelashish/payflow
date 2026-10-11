@@ -14,6 +14,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
+import { Menu, X, LogOut } from 'lucide-react';
 
 type Tab = 'overview' | 'payments' | 'receipts' | 'fees' | 'customers' | 'import' | 'settings' | 'gateway';
 
@@ -29,6 +30,7 @@ export default function OrgDashboard() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -98,104 +100,133 @@ export default function OrgDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-900 flex">
+    <div className="min-h-screen bg-zinc-50 flex">
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 bg-slate-800 border-r border-slate-700 flex flex-col">
-        <div className="p-4 border-b border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center overflow-hidden">
+      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r border-zinc-200 flex flex-col transform transition-transform duration-200 ease-in-out ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      }`}>
+        <div className="p-4 border-b border-zinc-100 flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-lg bg-zinc-900 flex items-center justify-center overflow-hidden flex-shrink-0">
               {organisation.logo ? (
                 <img src={organisation.logo} alt="" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-white font-bold">{organisation.name.charAt(0)}</span>
+                <span className="text-white font-bold text-sm">{organisation.name.charAt(0)}</span>
               )}
             </div>
             <div className="min-w-0">
-              <h2 className="text-sm font-bold text-white truncate">{organisation.name}</h2>
-              <p className="text-xs text-slate-400 truncate">{user.name}</p>
+              <h2 className="text-sm font-semibold text-zinc-900 truncate">{organisation.name}</h2>
+              <p className="text-xs text-zinc-500 truncate">{user.name}</p>
             </div>
           </div>
+          <button 
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden p-1 text-zinc-400 hover:text-zinc-600"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
-        <nav className="flex-1 p-3 space-y-1">
+        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
           {tabs.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition ${
-                activeTab === tab.id ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'
+              onClick={() => { setActiveTab(tab.id); setSidebarOpen(false); }}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition ${
+                activeTab === tab.id 
+                  ? 'bg-zinc-900 text-white' 
+                  : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
               }`}
             >
-              <i className={`fas ${tab.icon} w-5`}></i>
+              <i className={`fas ${tab.icon} w-4 text-center`}></i>
               {tab.label}
             </button>
           ))}
         </nav>
-        <div className="p-3 border-t border-slate-700">
+        <div className="p-3 border-t border-zinc-100">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-700 transition"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition"
           >
-            <i className="fas fa-sign-out-alt w-5"></i>
+            <LogOut className="w-4 h-4" />
             Logout
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="p-6">
+      <main className="flex-1 overflow-y-auto min-w-0">
+        {/* Mobile header */}
+        <div className="lg:hidden sticky top-0 z-30 bg-white border-b border-zinc-200 px-4 py-3 flex items-center gap-3">
+          <button 
+            onClick={() => setSidebarOpen(true)}
+            className="p-1.5 text-zinc-600 hover:text-zinc-900"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <h1 className="text-sm font-semibold text-zinc-900 truncate">{tabs.find(t => t.id === activeTab)?.label}</h1>
+        </div>
+
+        <div className="p-4 sm:p-6 lg:p-8">
           {/* Overview */}
           {activeTab === 'overview' && (
             <div>
-              <h1 className="text-2xl font-bold text-white mb-6">Dashboard Overview</h1>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <h1 className="text-2xl font-bold text-zinc-900 mb-6">Dashboard Overview</h1>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
                 <StatCard label="Total Collected" value={formatAmount(totalCollected / 100)} icon="fa-rupee-sign" color="green" />
                 <StatCard label="Successful Payments" value={successfulPayments.toString()} icon="fa-check-circle" color="blue" />
                 <StatCard label="Pending" value={pendingPayments.toString()} icon="fa-clock" color="yellow" />
                 <StatCard label="Failed" value={failedPayments.toString()} icon="fa-times-circle" color="red" />
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
-                  <h3 className="text-white font-medium mb-4">Your Payment Link</h3>
-                  <div className="bg-slate-900 rounded-lg p-3 mb-4">
-                    <p className="text-xs text-slate-400 mb-1">Share this link with your customers:</p>
-                    <code className="text-sm text-blue-300 break-all">{window.location.origin}/#/pay?org={organisation.id}</code>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                <div className="bg-white rounded-lg border border-zinc-200 p-4 sm:p-6">
+                  <h3 className="text-base font-semibold text-zinc-900 mb-4">Your Payment Link</h3>
+                  <div className="bg-zinc-50 rounded-lg p-3 mb-4 border border-zinc-200">
+                    <p className="text-xs text-zinc-500 mb-1">Share this link with your customers:</p>
+                    <code className="text-sm text-indigo-600 break-all font-mono">{window.location.origin}/#/pay?org={organisation.id}</code>
                   </div>
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(`${window.location.origin}/#/pay?org=${organisation.id}`);
                     }}
-                    className="w-full py-2 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition mb-3"
+                    className="w-full py-2 px-4 bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg text-sm transition mb-3"
                   >
                     <i className="fas fa-copy mr-2"></i>Copy Link
                   </button>
-                  <h3 className="text-white font-medium mb-3">Quick Actions</h3>
+                  <h3 className="text-base font-semibold text-zinc-900 mb-3">Quick Actions</h3>
                   <div className="space-y-2">
-                    <button onClick={() => setActiveTab('fees')} className="block w-full py-2.5 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm text-center transition">
+                    <button onClick={() => setActiveTab('fees')} className="block w-full py-2.5 px-4 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg text-sm text-center transition">
                       <i className="fas fa-plus mr-2"></i>Add Fee Category
                     </button>
-                    <button onClick={() => setActiveTab('import')} className="block w-full py-2.5 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm text-center transition">
+                    <button onClick={() => setActiveTab('import')} className="block w-full py-2.5 px-4 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg text-sm text-center transition">
                       <i className="fas fa-file-import mr-2"></i>Import Customers
                     </button>
-                    <button onClick={() => setActiveTab('settings')} className="block w-full py-2.5 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm text-center transition">
-                      <i className="fas fa-cog mr-2"></i>Organisation Settings
+                    <button onClick={() => setActiveTab('settings')} className="block w-full py-2.5 px-4 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg text-sm text-center transition">
+                      <i className="fas fa-cog mr-2"></i>Settings
                     </button>
                   </div>
                 </div>
 
-                <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
-                  <h3 className="text-white font-medium mb-4">Recent Transactions</h3>
+                <div className="bg-white rounded-lg border border-zinc-200 p-4 sm:p-6">
+                  <h3 className="text-base font-semibold text-zinc-900 mb-4">Recent Transactions</h3>
                   <div className="space-y-3">
                     {payments.slice(-5).reverse().map(p => (
-                      <div key={p.id} className="flex items-center justify-between py-2 border-b border-slate-700 last:border-0">
-                        <div>
-                          <p className="text-white text-sm">{p.razorpayPaymentId.substring(0, 15)}...</p>
-                          <p className="text-slate-400 text-xs">{formatDate(p.createdAt)}</p>
+                      <div key={p.id} className="flex items-center justify-between py-2 border-b border-zinc-100 last:border-0">
+                        <div className="min-w-0">
+                          <p className="text-zinc-900 text-sm truncate">{p.razorpayPaymentId.substring(0, 15)}...</p>
+                          <p className="text-zinc-500 text-xs">{formatDate(p.createdAt)}</p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-white font-medium">{formatAmount(p.amountPaise / 100)}</p>
-                          <span className={`text-xs px-2 py-0.5 rounded ${p.status === 'captured' ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}>
+                        <div className="text-right flex-shrink-0 ml-3">
+                          <p className="text-zinc-900 font-medium text-sm">{formatAmount(p.amountPaise / 100)}</p>
+                          <span className={`text-xs px-2 py-0.5 rounded ${p.status === 'captured' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
                             {p.status}
                           </span>
                         </div>
@@ -406,26 +437,28 @@ export default function OrgDashboard() {
 
 // Stat Card Component
 function StatCard({ label, value, icon, color }: { label: string; value: string; icon: string; color: string }) {
-  const colors: Record<string, string> = {
-    green: 'from-green-900/50 to-emerald-900/30 border-green-700/50',
-    blue: 'from-blue-900/50 to-indigo-900/30 border-blue-700/50',
-    yellow: 'from-amber-900/50 to-orange-900/30 border-amber-700/50',
-    red: 'from-red-900/50 to-rose-900/30 border-red-700/50',
+  const bgColors: Record<string, string> = {
+    green: 'bg-emerald-50',
+    blue: 'bg-blue-50',
+    yellow: 'bg-amber-50',
+    red: 'bg-red-50',
   };
   const iconColors: Record<string, string> = {
-    green: 'text-green-400',
-    blue: 'text-blue-400',
-    yellow: 'text-amber-400',
-    red: 'text-red-400',
+    green: 'text-emerald-600',
+    blue: 'text-blue-600',
+    yellow: 'text-amber-600',
+    red: 'text-red-600',
   };
 
   return (
-    <div className={`bg-gradient-to-br ${colors[color]} border rounded-xl p-5`}>
+    <div className="bg-white border border-zinc-200 rounded-lg p-4 sm:p-5">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-slate-400 text-sm">{label}</span>
-        <i className={`fas ${icon} ${iconColors[color]}`}></i>
+        <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">{label}</span>
+        <div className={`w-7 h-7 rounded-md flex items-center justify-center ${bgColors[color]}`}>
+          <i className={`fas ${icon} text-xs ${iconColors[color]}`}></i>
+        </div>
       </div>
-      <p className="text-2xl font-bold text-white">{value}</p>
+      <p className="text-xl sm:text-2xl font-bold text-zinc-900">{value}</p>
     </div>
   );
 }

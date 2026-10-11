@@ -2,31 +2,19 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="description" content="PayFlow — Collect payments, generate receipts, and manage transactions for your organisation." />
     <title>PayFlow — Payments and Receipts for Every Organisation</title>
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <style>
-      html, body {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        height: 100%;
-      }
-      html.dark, html.dark body {
-        background-color: #0f172a !important;
-        color: #ffffff;
-      }
+      html, body { margin: 0; padding: 0; width: 100%; min-height: 100%; }
+      body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; background: #ffffff; color: #0a0a0a; }
+      #root { min-height: 100vh; }
     </style>
-    <script>
-      (function () {
-        document.documentElement.classList.add("dark");
-        document.documentElement.setAttribute("data-theme", "dark");
-      })();
-    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -445,6 +445,256 @@ export function getPlatformTagline(): string {
   return PLATFORM_TAGLINE;
 }
 
+// ============================================================
+// DEMO MODE - Completely isolated from real data
+// ============================================================
+
+const DEMO_STORAGE_KEY = 'payflow_demo_data';
+
+export interface DemoState {
+  organisation: {
+    id: string;
+    name: string;
+    type: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    state: string;
+    pincode: string;
+    country: string;
+    website: string;
+    logo: string;
+    gstin: string;
+    bankName: string;
+    bankAccount: string;
+    bankIfsc: string;
+    bankBranch: string;
+    declaration: string;
+    receiptPrefix: string;
+    termsAndConditions: string;
+    preparedBy: string;
+    authorisedSignatory: string;
+  };
+  paymentRequests: Array<{
+    id: string;
+    title: string;
+    description: string;
+    amount: number;
+    status: 'pending' | 'paid' | 'failed' | 'cancelled';
+    customerName: string;
+    customerEmail: string;
+    customerPhone: string;
+    customerReferenceId: string;
+    paymentId: string | null;
+    receiptNumber: string | null;
+    createdAt: string;
+    paidAt: string | null;
+  }>;
+  receiptCounter: number;
+}
+
+function getDefaultDemoState(): DemoState {
+  return {
+    organisation: {
+      id: 'demo-org-northstar',
+      name: 'Northstar Learning Centre',
+      type: 'Coaching Institute',
+      email: 'accounts@northstar-learning.example.com',
+      phone: '+91 98450 12345',
+      address: '14, Academic Avenue, Indiranagar',
+      city: 'Bengaluru',
+      state: 'Karnataka',
+      pincode: '560038',
+      country: 'India',
+      website: 'https://northstar-learning.example.com',
+      logo: '',
+      gstin: '',
+      bankName: 'HDFC Bank',
+      bankAccount: '50100123456789',
+      bankIfsc: 'HDFC0001234',
+      bankBranch: 'Indiranagar Branch, Bengaluru',
+      declaration: 'This is a computer-generated receipt. We declare that this shows the true value of fees received.',
+      receiptPrefix: 'NS-DEMO',
+      termsAndConditions: '1. This is a DEMO receipt for demonstration purposes only.\n2. No real payment has been processed.\n3. This document is NOT proof of payment.',
+      preparedBy: 'Demo Accounts Dept.',
+      authorisedSignatory: 'Demo Principal',
+    },
+    paymentRequests: [
+      {
+        id: 'demo-pr-1',
+        title: 'Course Registration',
+        description: 'Registration fee for Advanced Mathematics course',
+        amount: 500,
+        status: 'pending',
+        customerName: '',
+        customerEmail: '',
+        customerPhone: '',
+        customerReferenceId: '',
+        paymentId: null,
+        receiptNumber: null,
+        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        paidAt: null,
+      },
+      {
+        id: 'demo-pr-2',
+        title: 'Tuition Fee — Term 1',
+        description: 'Monthly tuition fee for January 2026',
+        amount: 2000,
+        status: 'pending',
+        customerName: '',
+        customerEmail: '',
+        customerPhone: '',
+        customerReferenceId: '',
+        paymentId: null,
+        receiptNumber: null,
+        createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+        paidAt: null,
+      },
+      {
+        id: 'demo-pr-3',
+        title: 'Event Registration',
+        description: 'Annual Science Fair 2026 participation fee',
+        amount: 750,
+        status: 'pending',
+        customerName: '',
+        customerEmail: '',
+        customerPhone: '',
+        customerReferenceId: '',
+        paymentId: null,
+        receiptNumber: null,
+        createdAt: new Date().toISOString(),
+        paidAt: null,
+      },
+      // Pre-existing completed transactions for realistic dashboard
+      {
+        id: 'demo-pr-hist-1',
+        title: 'Tuition Fee — December',
+        description: 'Monthly tuition fee for December 2025',
+        amount: 2000,
+        status: 'paid',
+        customerName: 'Ananya Iyer',
+        customerEmail: 'ananya@example.com',
+        customerPhone: '+91 98765 43210',
+        customerReferenceId: 'NS-2025-042',
+        paymentId: 'pay_demo_hist_001',
+        receiptNumber: 'NS-DEMO-2025-0001',
+        createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+        paidAt: new Date(Date.now() - 29 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      {
+        id: 'demo-pr-hist-2',
+        title: 'Lab Fees',
+        description: 'Science laboratory access fee',
+        amount: 1500,
+        status: 'paid',
+        customerName: 'Vikram Desai',
+        customerEmail: 'vikram@example.com',
+        customerPhone: '+91 98765 43211',
+        customerReferenceId: 'NS-2025-043',
+        paymentId: 'pay_demo_hist_002',
+        receiptNumber: 'NS-DEMO-2025-0002',
+        createdAt: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(),
+        paidAt: new Date(Date.now() - 24 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      {
+        id: 'demo-pr-hist-3',
+        title: 'Workshop Registration',
+        description: 'Creative Writing Workshop',
+        amount: 800,
+        status: 'paid',
+        customerName: 'Meera Krishnan',
+        customerEmail: 'meera@example.com',
+        customerPhone: '+91 98765 43212',
+        customerReferenceId: 'NS-2025-044',
+        paymentId: 'pay_demo_hist_003',
+        receiptNumber: 'NS-DEMO-2025-0003',
+        createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+        paidAt: new Date(Date.now() - 19 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      {
+        id: 'demo-pr-hist-4',
+        title: 'Exam Fee',
+        description: 'Mid-term examination fee',
+        amount: 600,
+        status: 'failed',
+        customerName: 'Arjun Nair',
+        customerEmail: 'arjun@example.com',
+        customerPhone: '+91 98765 43213',
+        customerReferenceId: 'NS-2025-045',
+        paymentId: 'pay_demo_hist_004',
+        receiptNumber: null,
+        createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+        paidAt: null,
+      },
+    ],
+    receiptCounter: 3,
+  };
+}
+
+export function loadDemoState(): DemoState {
+  try {
+    const raw = localStorage.getItem(DEMO_STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.error('Failed to load demo state:', e);
+  }
+  const defaultState = getDefaultDemoState();
+  saveDemoState(defaultState);
+  return defaultState;
+}
+
+export function saveDemoState(state: DemoState): void {
+  localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(state));
+}
+
+export function resetDemoState(): DemoState {
+  const defaultState = getDefaultDemoState();
+  saveDemoState(defaultState);
+  return defaultState;
+}
+
+export function getDemoStats() {
+  const state = loadDemoState();
+  const paid = state.paymentRequests.filter(pr => pr.status === 'paid');
+  const pending = state.paymentRequests.filter(pr => pr.status === 'pending');
+  const failed = state.paymentRequests.filter(pr => pr.status === 'failed');
+  const totalCollected = paid.reduce((sum, pr) => sum + pr.amount, 0);
+
+  return {
+    totalCollected,
+    successfulCount: paid.length,
+    pendingCount: pending.length,
+    failedCount: failed.length,
+    receiptsCount: paid.length,
+  };
+}
+
+export function updateDemoPaymentRequest(
+  id: string,
+  updates: Partial<DemoState['paymentRequests'][0]>
+): void {
+  const state = loadDemoState();
+  const idx = state.paymentRequests.findIndex(pr => pr.id === id);
+  if (idx !== -1) {
+    state.paymentRequests[idx] = { ...state.paymentRequests[idx], ...updates };
+    saveDemoState(state);
+  }
+}
+
+export function generateDemoReceiptNumber(): string {
+  const state = loadDemoState();
+  state.receiptCounter += 1;
+  const num = String(state.receiptCounter).padStart(4, '0');
+  const year = new Date().getFullYear();
+  saveDemoState(state);
+  return `${state.organisation.receiptPrefix}-${year}-${num}`;
+}
+
+export function generateDemoPaymentId(): string {
+  return `pay_demo_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+}
+
 // Demo data seeder
 export function seedDemoOrganisation(): { organisation: Organisation; user: User } {
   const state = loadState();
