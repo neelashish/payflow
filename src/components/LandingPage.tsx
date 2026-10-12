@@ -58,12 +58,10 @@ export default function LandingPage() {
             <div className="hidden md:flex items-center gap-1">
               <button onClick={() => scrollToSection('features')} className="px-3 py-2 text-sm text-zinc-600 hover:text-zinc-900 transition">Features</button>
               <button onClick={() => scrollToSection('how-it-works')} className="px-3 py-2 text-sm text-zinc-600 hover:text-zinc-900 transition">How It Works</button>
+              <button onClick={() => navigate('/demo')} className="px-3 py-2 text-sm text-zinc-600 hover:text-zinc-900 transition">Demo</button>
+              <button onClick={() => navigate('/download')} className="px-3 py-2 text-sm text-zinc-600 hover:text-zinc-900 transition">Download</button>
               <button onClick={() => navigate('/login')} className="px-3 py-2 text-sm text-zinc-600 hover:text-zinc-900 transition">Sign In</button>
-              <button onClick={() => navigate('/register')} className="btn-primary text-sm">Get Started</button>
-              <button onClick={() => navigate('/demo')} className="btn-secondary text-sm ml-2">
-                <Sparkles className="w-3.5 h-3.5" />
-                Try Demo
-              </button>
+              <button onClick={() => navigate('/register')} className="btn-primary text-sm ml-1">Get Started</button>
             </div>
 
             {/* Mobile menu button */}
@@ -82,10 +80,11 @@ export default function LandingPage() {
               <div className="flex flex-col gap-1">
                 <button onClick={() => scrollToSection('features')} className="w-full text-left px-3 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50 rounded-md">Features</button>
                 <button onClick={() => scrollToSection('how-it-works')} className="w-full text-left px-3 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50 rounded-md">How It Works</button>
+                <button onClick={() => { navigate('/demo'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50 rounded-md">Demo</button>
+                <button onClick={() => { navigate('/download'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50 rounded-md">Download</button>
                 <button onClick={() => { navigate('/login'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50 rounded-md">Sign In</button>
                 <div className="flex gap-2 mt-2 px-1">
                   <button onClick={() => { navigate('/register'); setMobileMenuOpen(false); }} className="flex-1 btn-primary text-sm">Get Started</button>
-                  <button onClick={() => { navigate('/demo'); setMobileMenuOpen(false); }} className="flex-1 btn-secondary text-sm">Try Demo</button>
                 </div>
               </div>
             </div>
@@ -315,6 +314,7 @@ export default function LandingPage() {
               <button onClick={() => navigate('/login')} className="text-zinc-600 hover:text-zinc-900 transition">Sign In</button>
               <button onClick={() => navigate('/register')} className="text-zinc-600 hover:text-zinc-900 transition">Get Started</button>
               <button onClick={() => navigate('/demo')} className="text-zinc-600 hover:text-zinc-900 transition">Try Demo</button>
+              <button onClick={() => navigate('/download')} className="text-zinc-600 hover:text-zinc-900 transition">Download</button>
             </div>
 
             <p className="text-sm text-zinc-500">
